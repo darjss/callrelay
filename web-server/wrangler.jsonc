@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "callrelay",
   "routes": [
-    { "pattern": "calls.darjs.dev/*", "custom_domain": true }
+    { "pattern": "calls.darjs.dev", "custom_domain": true }
   ],
   "main": "src/index.ts",
   "compatibility_date": "2026-07-04",
