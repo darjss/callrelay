@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.wrangler/
+*.apk
+
+# Secrets and env
+.env
+.dev.vars
+*.local
+
+# IDE
+.vscode/
+.zed/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
