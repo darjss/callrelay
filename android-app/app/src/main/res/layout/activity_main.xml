@@ -16,11 +16,22 @@
         android:textColor="#000000" />
 
     <TextView
+        android:id="@+id/status_text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Not configured yet"
+        android:gravity="center"
+        android:text="CallRelay is not set as the call screening app."
         android:textSize="16sp"
         android:textColor="#000000" />
+
+    <Button
+        android:id="@+id/set_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:text="Set as call screening app"
+        android:textColor="#000000"
+        android:backgroundTint="#FFFFFF" />
 
 </LinearLayout>
