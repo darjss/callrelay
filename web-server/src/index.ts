@@ -1,16 +1,11 @@
+import { DurableObject } from "cloudflare:workers";
 import { Hono } from "hono";
 
 // A Call Event stored by the Relay. `seq` is assigned by the DO; `outcome`
-// is only present on Call Ended Events.
-interface StoredEvent {
+// is only present on Call Ended Events. Extends CallEventInput to prevent
+// field drift between the input and stored shapes.
+interface StoredEvent extends CallEventInput {
   seq: number;
-  callId: string;
-  type: "started" | "ended";
-  direction: "incoming" | "outgoing";
-  callerName: string;
-  callerNumber: string;
-  outcome?: "answered" | "missed" | "declined" | "error";
-  timestamp: number;
 }
 
 // Payload sent by the Android App, before `seq` is assigned.
@@ -35,11 +30,12 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 // Single global instance; all Call Events share one strongly-consistent log.
 const RELAY_NAME = "global";
 
-export class CallRelayDO implements DurableObject {
+export class CallRelayDO extends DurableObject {
   private sql: SqlStorage;
 
-  constructor(state: DurableObjectState, _env: Env) {
-    this.sql = state.storage.sql;
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
     this.sql.exec(`CREATE TABLE IF NOT EXISTS events (
       seq INTEGER PRIMARY KEY AUTOINCREMENT,
       callId TEXT,
@@ -86,7 +82,7 @@ export class CallRelayDO implements DurableObject {
         callId: r.callId as string,
         type: r.type as "started" | "ended",
         direction: r.direction as "incoming" | "outgoing",
-        callerName: (r.callerName as string) ?? "",
+        callerName: r.callerName ?? "",
         callerNumber: r.callerNumber as string,
         timestamp: r.timestamp as number,
       };
@@ -99,26 +95,10 @@ export class CallRelayDO implements DurableObject {
       events.length > 0 ? events[events.length - 1].seq : since;
     return { events, nextCursor };
   }
-
-  async fetch(request: Request): Promise<Response> {
-    const url = new URL(request.url);
-    if (request.method === "POST" && url.pathname === "/events") {
-      const event = (await request.json()) as CallEventInput;
-      const seq = await this.putEvent(event);
-      return Response.json({ seq }, { status: 202 });
-    }
-    if (request.method === "GET" && url.pathname === "/events") {
-      const since = Number(url.searchParams.get("since") ?? "0");
-      const result = await this.getEvents(since);
-      return Response.json(result, { status: 200 });
-    }
-    return new Response("Not Found", { status: 404 });
-  }
 }
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get("/", (c) => c.text("Hello Hono!"));
 app.get("/health", (c) => c.text("ok", 200));
 
 function bearerToken(request: Request): string | null {
@@ -127,9 +107,14 @@ function bearerToken(request: Request): string | null {
   return auth.slice(7);
 }
 
+// Returns true when the request carries a matching Bearer token.
+function isAuthorized(expectedToken: string, request: Request): boolean {
+  const token = bearerToken(request);
+  return token !== null && token === expectedToken;
+}
+
 app.post("/events", async (c) => {
-  const token = bearerToken(c.req.raw);
-  if (token === null || token !== c.env.POST_TOKEN) {
+  if (!isAuthorized(c.env.POST_TOKEN, c.req.raw)) {
     return c.json({ error: "unauthorized" }, 401);
   }
 
@@ -164,18 +149,16 @@ app.post("/events", async (c) => {
 
   const id = c.env.CALLRELAY_DO.idFromName(RELAY_NAME);
   const stub = c.env.CALLRELAY_DO.get(id);
-  const resp = await stub.fetch("https://relay/events", {
-    method: "POST",
-    body: JSON.stringify(body),
-    headers: { "Content-Type": "application/json" },
-  });
-  const data = (await resp.json()) as { seq: number };
-  return c.json({ seq: data.seq }, 202);
+  try {
+    const seq = await stub.putEvent(body);
+    return c.json({ seq }, 202);
+  } catch {
+    return c.json({ error: "relay unavailable" }, 502);
+  }
 });
 
 app.get("/events", async (c) => {
-  const token = bearerToken(c.req.raw);
-  if (token === null || token !== c.env.GET_TOKEN) {
+  if (!isAuthorized(c.env.GET_TOKEN, c.req.raw)) {
     return c.json({ error: "unauthorized" }, 401);
   }
 
@@ -187,9 +170,12 @@ app.get("/events", async (c) => {
 
   const id = c.env.CALLRELAY_DO.idFromName(RELAY_NAME);
   const stub = c.env.CALLRELAY_DO.get(id);
-  const resp = await stub.fetch(`https://relay/events?since=${since}`);
-  const data = (await resp.json()) as { events: StoredEvent[]; nextCursor: number };
-  return c.json(data, 200);
+  try {
+    const result = await stub.getEvents(since);
+    return c.json(result, 200);
+  } catch {
+    return c.json({ error: "relay unavailable" }, 502);
+  }
 });
 
 export default app;

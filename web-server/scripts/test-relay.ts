@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const BASE_URL = process.env.RELAY_URL ?? "https://calls.darjs.dev";
+const BASE_URL = process.env.RELAY_URL ?? "http://localhost:8787";
 
 function loadDotVars(): Record<string, string> {
   const path = resolve(import.meta.dirname, "..", ".dev.vars");

@@ -18,15 +18,6 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".CallScreeningService"
-            android:exported="false"
-            android:permission="android.permission.BIND_SCREENING_SERVICE">
-            <intent-filter>
-                <action android:name="android.telecom.CallScreeningService" />
-            </intent-filter>
-        </service>
-
     </application>
 
 </manifest>
