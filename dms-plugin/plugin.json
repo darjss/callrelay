@@ -1,0 +1,12 @@
+{
+  "id": "callRelay",
+  "name": "CallRelay",
+  "description": "Show incoming call notifications from your Android phone",
+  "version": "0.1.0",
+  "author": "darjss",
+  "type": "daemon",
+  "component": "./CallRelayDaemon.qml",
+  "settings": "./CallRelaySettings.qml",
+  "requires_dms": ">=1.5.0",
+  "permissions": ["settings_read", "settings_write"]
+}
