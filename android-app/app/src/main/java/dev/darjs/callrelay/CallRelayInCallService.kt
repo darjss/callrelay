@@ -71,7 +71,7 @@ class CallRelayInCallService : InCallService() {
             //   caller info from its activeCalls map instead of the Ended event.
             callerName = details.callerDisplayName,
             callerNumber = details.handle?.schemeSpecificPart,
-            outcome = mapDisconnectCause(details.disconnectCause),
+            outcome = mapDisconnectCause(details.disconnectCause.code),
             timestamp = System.currentTimeMillis(),
         )
         scope.launch { sender.sendEvent(event) }

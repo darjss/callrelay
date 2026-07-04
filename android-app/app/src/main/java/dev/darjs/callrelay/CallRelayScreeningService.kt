@@ -1,8 +1,7 @@
 package dev.darjs.callrelay
 
-import android.telecom.Call
-import android.telecom.CallResponse
 import android.telecom.CallScreeningService
+import android.telecom.Call
 
 /**
  * Pass-through role holder for ROLE_CALL_SCREENING.
@@ -16,8 +15,8 @@ import android.telecom.CallScreeningService
 class CallRelayScreeningService : CallScreeningService() {
 
     override fun onScreenCall(callDetails: Call.Details) {
-        val response = CallResponse.Builder()
-            .setAllowCall(true)
+        val response = CallScreeningService.CallResponse.Builder()
+            .setDisallowCall(false)
             .setSkipCallLog(false)
             .setSkipNotification(false)
             .build()

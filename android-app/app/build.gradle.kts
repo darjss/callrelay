@@ -33,7 +33,9 @@ android {
         buildConfigField("String", "POST_TOKEN", "\"$postToken\"")
     }
 
-    buildConfig = true
+    buildFeatures {
+        buildConfig = true
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
