@@ -1,6 +1,6 @@
 package dev.darjs.callrelay
 
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -40,6 +40,8 @@ class EventSender {
                 client.newCall(request).execute().use { resp ->
                     if (resp.code == 202) return@withContext true
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (_: Exception) {
                 // best-effort; retry or give up below
             }

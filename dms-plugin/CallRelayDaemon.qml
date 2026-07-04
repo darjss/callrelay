@@ -9,8 +9,6 @@ import qs.Widgets
 PluginComponent {
     id: root
 
-    property var popoutService: null
-
     // Config from plugin settings (injected by DMS PluginService).
     property string workerUrl: pluginData.workerUrl || ""
     property string getToken: pluginData.getToken || ""
@@ -30,9 +28,6 @@ PluginComponent {
     readonly property string cursorPath: stateDir + "/cursor.json"
     readonly property string seenPath: stateDir + "/seen.json"
 
-    // Debounce handle for persisted writes.
-    property int saveCursorPending: 0
-    property int saveSeenPending: 0
 
     Component.onCompleted: {
         ensureStateDir.running = true;
@@ -106,23 +101,25 @@ PluginComponent {
     }
 
     function saveCursor() {
-        saveCursorPending++;
         Qt.callLater(flushCursor);
     }
 
     function flushCursor() {
-        if (--saveCursorPending > 0) return;
-        cursorFile.setText(JSON.stringify({ cursor: root.cursor }));
+        flushPersist(cursorFile, { cursor: root.cursor });
     }
 
     function saveSeen() {
-        saveSeenPending++;
         Qt.callLater(flushSeen);
     }
 
     function flushSeen() {
-        if (--saveSeenPending > 0) return;
-        seenFile.setText(JSON.stringify({ keys: root.seenKeys }));
+        flushPersist(seenFile, { keys: root.seenKeys });
+    }
+
+    // Debounced write: Qt.callLater coalesces multiple calls, so the flush
+    // functions always read the current property value at execution time.
+    function flushPersist(fileView, data) {
+        fileView.setText(JSON.stringify(data));
     }
 
     // --- Polling loop --------------------------------------------------------
@@ -208,6 +205,16 @@ PluginComponent {
         return s.charAt(0).toUpperCase() + s.slice(1);
     }
 
+    function stopPlayer(player) {
+        try { player.stop(); } catch (e) {}
+    }
+
+    // dms notify: the trailing "" arg is a body placeholder — without it,
+    // dms treats the previous arg as the body instead of the summary.
+    function notifyTray(label, name) {
+        Quickshell.execDetached(["dms", "notify", "--app", "CallRelay", "--icon", "call", label + ": " + name, ""]);
+    }
+
     // --- Call Started --------------------------------------------------------
 
     function onCallStarted(event) {
@@ -241,7 +248,7 @@ PluginComponent {
         dismissTimer.start();
 
         // 5. Tray history (do NOT block on popup visibility — record the event).
-        Quickshell.execDetached(["dms", "notify", "--app", "CallRelay", "--icon", "call", "Incoming: " + name, ""]);
+        notifyTray("Incoming", name);
     }
 
     // --- Call Ended ----------------------------------------------------------
@@ -256,7 +263,7 @@ PluginComponent {
             teardownCall(callId);
         }
         // 2. Always fire tray history (even if popup already auto-dismissed).
-        Quickshell.execDetached(["dms", "notify", "--app", "CallRelay", "--icon", "call", label + ": " + name, ""]);
+        notifyTray(label, name);
     }
 
     // Destroy all resources for a callId and drop the entry.
@@ -266,17 +273,11 @@ PluginComponent {
         if (entry.ringtoneTimer) entry.ringtoneTimer.stop();
         if (entry.dismissTimer) entry.dismissTimer.stop();
         if (entry.mediaPlayer) {
-            try { entry.mediaPlayer.stop(); } catch (e) {}
+            stopPlayer(entry.mediaPlayer);
             entry.mediaPlayer.destroy();
         }
         if (entry.popup) entry.popup.destroy();
         delete activeCalls[callId];
-    }
-
-    // Called by the 30s auto-dismiss timer: tear down WITHOUT firing dms notify
-    // (no Call Ended event arrived yet; the ended event will notify when it comes).
-    function autoDismiss(callId) {
-        teardownCall(callId);
     }
 
     // --- Components ----------------------------------------------------------
@@ -331,9 +332,6 @@ PluginComponent {
                 }
             }
 
-            Component.onDestruction: {
-                // Window destroyed — nothing else to clean here; teardownCall owns the entry.
-            }
         }
     }
 
@@ -360,7 +358,7 @@ PluginComponent {
             onTriggered: {
                 var entry = root.activeCalls[callId];
                 if (entry && entry.mediaPlayer) {
-                    try { entry.mediaPlayer.stop(); } catch (e) {}
+                    stopPlayer(entry.mediaPlayer);
                 }
             }
         }
@@ -374,7 +372,9 @@ PluginComponent {
             interval: 30000
             repeat: false
             onTriggered: {
-                root.autoDismiss(callId);
+                // Tear down WITHOUT firing dms notify — the ended event will
+                // notify when it comes.
+                root.teardownCall(callId);
             }
         }
     }
