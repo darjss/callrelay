@@ -1,0 +1,36 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Phone handset, centered in the 108x108 safe zone (content within 72x72 core) -->
+    <group
+        android:scaleX="0.5"
+        android:scaleY="0.5"
+        android:translateX="27"
+        android:translateY="27">
+        <!-- Handset body -->
+        <path
+            android:fillColor="#e8e8e8"
+            android:pathData="M40,20 C36,20 32,22 30,26 L26,34 C24,38 25,43 29,46 L40,54 C44,57 50,56 53,52 L58,47 C62,43 63,37 60,33 L56,27 C54,23 50,21 46,21 Z M30,60 C26,64 24,70 26,76 L30,86 C32,90 36,92 40,90 L48,86 C52,84 53,79 50,75 L42,67 C38,64 33,64 30,67 Z" />
+        <!-- Relay signal waves emanating to the right -->
+        <path
+            android:strokeColor="#e8e8e8"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000"
+            android:pathData="M68,40 C74,44 74,56 68,60" />
+        <path
+            android:strokeColor="#e8e8e8"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000"
+            android:pathData="M76,34 C86,42 86,58 76,66" />
+        <path
+            android:strokeColor="#e8e8e8"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:fillColor="#00000000"
+            android:pathData="M84,28 C98,40 98,60 84,72" />
+    </group>
+</vector>
