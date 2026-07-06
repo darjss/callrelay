@@ -33,6 +33,13 @@ class MainActivity : Activity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        val statusText = findViewById<TextView>(R.id.status_text)
+        val setButton = findViewById<Button>(R.id.set_button)
+        updateStatus(statusText, setButton)
+    }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_ROLE) {
